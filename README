@@ -1,0 +1,207 @@
+CGWatcher
+version 1.1.3
+© 2013 Justin Milone
+Milone99k@gmail.com
+http://manotechnology.blogspot.com/p/cgwatcher.html
+Donate: 
+BTC: 19msnBddmcaHnbTTQgFgzPDuy6PqfBgFJh
+LTC: LM6Un6hZvPzLBggJWiAVG6E6w2GfaHukXY 
+NMC: NJjD4rP5xy2mgSK8gXXsZwFkdknbvtvy3q
+
+UPDATE:
+See the Changelog at the bottom for more information on what has changed in this update.
+
+
+PURPOSE:
+CGWatcher is a GUI/monitor for CGMiner and BFGMiner, the bitcoin mining program. It provides a graphical user interface, along with control and monitoring options to help ensure mining runs consistently. These miners are capable of detecting and recovering from many problems that can interrupt mining, but there are cases where it is not and having a small utility to keep an eye on it and give it a push when necessary has allowed me to setup 24/7 mining computers without having to constantly monitor them. For the purpose of this ReadMe I will refer to CGMiner since that is what it was originally created for, but it should all be applicable to BFGMiner as well since both miners work in a similar way.
+
+
+HOW IT WORKS:
+CGMiner and BFGMiner have an API allowing other applications to communicate with them for purposes like this. Specifically, it uses RPC to allow communication between the two applications. CGWatcher sends a command to the miner, and the miner returns a reply message. These commands can be simple requests for information (such as asking what the current hash rate is or what devices it is using) along with commands that tell the miner to do something (change pools, disable a device, or restart, etc.) This allows a GUI to be written with a more user-friendly interface without affecting the miner's performance and hash rate. The miner gets to stay lightweight and as fast as possible, and the more resource-intensive GUI program only sends requests when necessary. This communication is not enough to have a noticable effect on the miner's performance.
+
+
+REQUIREMENTS:
+The .NET Framework 4.0 is required. The latest version of CGMiner or BFGMiner is recommended, although changes to these programs may require updates to CGWatcher, which I will try to do as quickly as possible. These miners must be ran with parameters giving CGWatcher full API privilege for full functionality. You can set these parameters using command-line arguments or in the miner's configuration (*.conf) file.
+
+Command-line arguments: 
+    --api-listen --api-allow W: 127.0.0.1 
+
+Configuration file entries (separate entries with commas): 
+    "api-listen" : true 
+    "api-allow" : "W: 127.0.0.1" 
+
+
+USING CGWATCHER:
+To keep the interface as small as possible, features are separated into tabs. Upon starting for the first time, you should go to the Settings tab and specify the path to CGMiner's executable (cgminer.exe), CGMiner arguments, and the IP Address:Port for CGMiner's RPC server. Below is a list of the tabs and information on the features each tab contains:
+
+
+    STATUS
+
+        The Status tab provides general information such as hash rate (current and average), accepted and rejected shares, etc. Moving the mouse over a text box will provide you with more information about the data being shown in it. This tab also features a line graph showing the current hash rate for the last eight times information was polled from CGMiner.
+
+        At any time, you can refresh the information in CGWatcher by clicking the Refresh button. If monitoring is enabled, this will be done automatically at the interval you specify. However, if you wish to update it instantly without changing the interval, you can use this button any time.
+
+        The Status tab also includes a large Pause/Un-Pause button. If CGMiner is currently mining, the button will be labeled "Pause Mining". Clicking it will shutdown CGMiner. Once CGMiner is not mining, the button turns into a "Start Mining" button. Clicking it will launch CGMiner and begin mining. The idea behind this button is to have a very easy way to "pause" mining if you wish to do something on the computer (like watch a video, for example) where you will need more performance from your GPU than you can get while mining, since mining usually maxes out your GPU. Depending on the intensity setting for your GPU, you may not need to pause CGMiner to do something like watch a video, but the option is there nonetheless.
+
+        On the bottom of the window underneath all of the tabs, you will see a status display on the left (which only appears when CGWatcher is doing something.) 
+        On the right is a CGMiner status display that says whether CGMiner is running or not. Monitoring has to be turned on for this to work, as it will not get updated if monitoring is turned off. Even if you open or close CGMiner outside of CGWatcher, it will still detect that CGMiner is running and update the display accordingly.
+
+
+    MONITOR
+
+        The Monitor tab provides options for monitoring CGMiner and watching for problems and correcting them. Changes to the settings on this tab are applied instantly and do not need to be "Saved."
+
+        "Enable monitoring, polling CGMiner every xx seconds" - This turns on the monitoring feature which will request mining information from CGMiner at the interval you specified. This option has to be turned on in order to enable the other monitoring and recovery options below, because with it disabled it will not continuously check CGMiner's status. The default value of 10 seconds means every 10 seconds CGWatcher will request data from CGMiner and update its display. When this option is turned on, you will see "[Monitoring]" added to the text in the CGWatcher title bar.
+
+        "Restart if total (5s) hashrate falls below xx Mh/s" - On occasion I have seen the hashrate fall to virtually nothing for some unknown reasons. To correct this, you can enable this option and set it to a low value such as 10% of your current hashrate. For example, if your current hashrate is 500Mh/s, you may want to set this at 50 (or below). A number this low will avoid restarting due to fluctuations in mining hashrates that can occur. In this example with this option enabled, every time CGWatcher refreshes mining information it will check to see if the current hashrate is below 50Mh/s, as this may indicate there is a problem. If the hashrate is below 50, it sends a "restart" command to CGMiner telling it to restart mining. This restart happens quickly (5-10 seconds), so will not have a large affect on mining.
+
+        "Restart CGMiner every X hours" - As a sort of last resort, you can specify a number of hours of continuous mining before CGMiner is restarted. For example, the default value of 24 means CGMiner will be restarted after it runs for 24 continuous hours of mining. If CGMiner is restarted for any other reason the timer will be reset, so it will only restart CGMiner after 24 hours of "continuous", non-stop mining. My reason for this feature was to ensure that if all of the other monitoring options failed to detect a problem, the worst that would happen is losing one day of mining (with it set to 24). Likewise, setting it to 2 would mean that if there was ever a problem that wasn't caught by one of the other checks, mining would only be down for 2 hours before CGWatcher restarted it.
+
+        "Restart miner if total shares stop increasing for X minutes" - If there is no increase in either accepted, rejected, stale, or discarded shares for X number of minutes, it is likely due to a problem with the miner or pool. The miner will be restarted in an attempt to fix the problem. Upon restarting, the miner will check pool status, and revert to a backup pool if the first pool is down. It is highly recommended that you have at least one backup pool listed in the miner's config file.
+
+        "Auto restart sick or dead GPUs" - On several occasions I have seen CGMiner detect sick or dead GPUs, but unable to restart them and continue mining. If you have the above option ("Enable monitoring...") enabled and set to 10 seconds, CGWatcher will also check for sick or dead GPUs when it requests status data from CGMiner. If it detects a sick or dead GPU, it sends a command to CGMiner telling it to restart that GPU (Restart in terms of CGMiner. Restarting a GPU will not affect other programs.)
+
+        "Restart miner if full API access becomes read-only" - If CGWatcher loses full API access in the same miner process, it indicates a problem with the miner. This is a situation I experience often with one of my miners, although they all use the same exact build of CGMiner and use the same drivers, etc. When this problem occurs, the most effective way to resolve it is to restart the miner. Since API access is now read-only, the miner will ignore the "restart" command. Instead, CGWatcher kills the miner's process and re-launches it afterwards. This re-enables full API access, assuming you are using the correct arguments/configuration settings to allow it in the first place. This restart will only take place if CGWatcher had full API access and then lost it to the same process. If it never had full API access to begin with, it will not restart the miner.
+
+       
+
+        SCHEDULE
+
+        "Start mining on selected days at this time: (if not already running)" - Specify a time to start mining on the days you select. If mining is already running, CGMiner will be restarted to correct any problems that may not have been corrected by other checks. The actual time mining is started may vary up to the monitoring interval you've set. For example, if you've set the monitoring interval to 10 seconds and the schedule start time to 5:00:00, the actual start time may be anywhere between 5:00:00 and 5:00:10.
+
+        "Stop mining after: X hour(s)" - When you use the scheduling option, you can specify a number of hours for it to stop mining after. This would allow you to, for example, run CGMiner while you sleep by setting it to start at night and stop after 8 hours. CGMiner will only be stopped if it was started by the scheduler. If you use the Start, Stop, or Restart buttons on the Settings tab, the scheduled stop will be aborted. You can, however, use the Pause Mining/Start Mining button on the Status tab to pause or un-pause scheduled mining without aborting the scheduled stop time.
+
+
+
+    DEVICES
+
+        This tab shows mining device information, but currently only supports GPU devices. At the top is the number of GPUs found and a drop-down box for selecting a GPU. Once you select one, you can see information specific to that GPU (hashrate, clock, temperature, etc.) Some of these text boxes are read-only (gray text) and some are editable (black text), meaning you can change a value and click "Apply Changes" to change those settings even while mining. This makes it easier to test and adjust different settings without having to edit the CGMiner config file and restart CGMiner, or use CGMiner's command-driven interface.
+        Towards the bottom is a large text box containing more information for the selected GPU. Underneath is the selected GPU's status (ACTIVE, DISABLED, etc.) and buttons to enable/disable or restart the GPU. (Note that enable/disable and restart are just in terms of mining and will not affect other programs.)
+
+        Changing GPU settings to values outside of their operating ranges can cause system crashes and possibly damage components! Please make sure you know what you are doing before you change these. These settings can all be changed in the CGMiner config file as well, but neither program is responsible should you push your hardware outside of its operating range and break something.
+
+
+    POOLS
+
+        This tab is similar to the devices tab, except that it shows pool information. You can select a pool from the drop-down list at the top to see information specific to that pool. This tab is not finished and eventually it will retrieve information from the CGMiner config file and allow you to add pools. As of this version, you can enable/disable a pool, change the pool's priority (which will adjust other pools' priorities accordingly), and switch to a specific pool (which will enable the pool (if it is disabled) and set its priority to 0).
+
+        The large text box shows more information specific to the selected pool.
+
+
+    REPORTS
+
+        This tab will be dedicated to reporting statistics. Currently, the top is mining duration, along with per minute (or per second) averages of accepted and rejected shares, stale and discarded work. This was to help me figure out which configurations were providing the best results.
+        At the bottom is network information retrieved from CGMiner.
+        More information may be added in the future.
+
+
+
+    SETTINGS
+
+        This tab is for CGWatcher settings. You should ensure these are set correctly the first time you use CGWatcher. Remember to click "Save Settings" to save the settings to CGWatcher's INI file. If you later change a setting without saving and want to go back to the last saved settings, click the "Cancel" button. The settings include:
+
+            CGMiner Address (IP:port) - This is the IP Address and port of CGMiner's RPC server. This is required for CGWatcher to work, because it communicates with CGMiner via RPC. The default values are 127.0.0.1:4028 and are the values you'd use if CGWatcher and CGMiner are running on the same computer. If you are running CGWatcher and CGMiner on different computers on the same network, you would need to change these values to point to the computer that CGMiner is running on.
+
+            Path to CGMiner.exe - Path the CGMiner's executable. This allows CGWatcher to launch CGMiner. The "..." button allows you to browse your computer for CGMiner's executable (called cgminer.exe).
+
+            CGMiner Arguments - These are the arguments used when launching CGMiner. There are a lot of arguments you can set here, more information on them is available at the official CGMiner thread located at https://bitcointalk.org/index.php?topic=28402.0 or in the CGMiner documentation. However, there are a few arguments you will need to include in order for CGWatcher to work. You can add them as command-line arguments or add them to the miner's config file (see above.) They are:
+
+                --api-listen			Tells CGMiner to enable API access and listen for API requests. *This is required for CGMiner to work.
+
+                --api-network			Allow API access (if enabled) to listen on/for any address. By default the API only listens for 127.0.0.1 (requests from the same computer).
+
+                --api-allow				Allow API access (if enabled) only to the given list of [W:]IP[/Prefix] address[/subnets]. This overrides --api-network and you must specify 127.0.0.1 if you want to allow local access.
+
+                						W: in front of the IP address gives that address privileged access to all API commands. *This is required for give CGWatcher full functionality.
+
+                --api-description		Description placed in the API status header (default is the CGMiner version). This is useful for accessing multiple CGMiner instances with the same program, however CGWatcher does not currently support this (right now CGWatcher works only with one instance of CGMiner on one computer.)
+
+                --api-port				Port number of CGMiner API (default is 4028).
+
+                --api-groups			API one letter groups G:cmd:cmd[,P:cmd:*...]. See API-README in CGMiner documentation for usage.
+
+                You can click the Help link under this text box for this information.
+
+        The large "Open CGMiner Config File" opens cgminer.conf in Notepad. You must have specified the valid "Path to CGMiner.exe" setting in order for this to work, otherwise it will not know where the file is located.
+
+        "Start", "Stop", "Restart" - Next are control buttons for starting, stopping, and restarting CGMiner. You must have specified the valid "Path to CGMiner.exe" setting in order for the Start button to work. Also note that the Stop button will send a "quit" command to CGMiner, which will cause the CGMiner window to close. This is the expected behavior. To start it again, click the Start button and CGMiner will be re-opened and started.
+
+        "CGMiner window mode" - For those who don't like seeing CGMiner, you can select to have it ran hidden or minimized. Minimized will still show its icon in the taskbar, which you can click on to restore the CGMiner window. Hidden will cause CGMiner to not appear on the screen or in the taskbar. The only way you can tell it is working is by checking CGWatcher. You will need to use the buttons in CGWatcher to start/stop/restart CGMiner. Alternatively, you could kill the CGMiner process in Task Manager.
+
+        "Run when Windows starts" adds a startup entry for CGWatcher. This means it will launch automatically when Windows starts. This is useful in the case of system restarts to ensure mining resumes automatically (after a system crash, for example). However, if your computer requires you to login to Windows, you would obviously have to login first before mining could be resumed after a system crash and automatic restart.
+
+        "Run CGMiner when started" will launch CGMiner and start mining when you run CGWatcher (if CGMiner is not already running). For continuous mining after a system crash in the above example, you would also want to enable this feature.
+
+        The idea is, in case of a system crash (BSOD, "Blue screen of death"), the computer is automatically restarted. The order to resume mining would be:
+
+        		Computer restarts -> [Windows login?] -> Launch CGWatcher automatically -> Launch CGMiner automatically = mining resumed
+
+        "Minimize to system tray" will minimize CGWatcher to the system tray when it is minimized (remove it from the taskbar.) To re-show it, double-click on the CGWatcher icon in the system tray.
+
+
+    REMOTE
+        The Remote tab is for future configuration and use with CGRemote, which will allow you to monitor and control your miners remotely. More information will be given when it is released. 
+
+
+    LOG
+
+    	This displays the CGWatcher log for the current session (since CGWatcher was started). If you need to view older log events, open the cgwatcher.log file located in the same directory as CGWatcher.
+
+        "Clear Log File" deletes all data from the log file.
+
+        "Open in Notepad" opens the log file in Notepad, allowing you to see all log data (even from previous CGWatcher sessions.)
+
+
+    TESTS
+
+    	This tab allows you to send commands to CGMiner and see what kind of reply messages it sends back. This can be useful for requesting information that I haven't yet implemented into the program. The reply messages are comma-delimited, but checking the "Convert comma-separated results into line-separated results" will do what it says, making the results easier to read. Unchecking it reverts back to the comma-delimited message.
+
+    	If you wish to send multiple commands in one click, enter the commands in the Diagnostic text box (separate them by commas). Then click Run. The reply messages for all of the commands will be displayed in the large Result message text box.
+
+
+    ABOUT
+
+    	Displays information about CGWatcher. The link will direct you to the official CGWatcher page. The 'Check for Update' button will check for program updates and if available, will provide a download link.
+
+
+
+SOURCE
+
+    I will likely release the source code at some point. If I do it will be after CGRemote is finished (which I would release the source for as well) and I feel like the applications are more complete. I have been cleaning and commenting code in preparation for this. The original program was written in a few days to get miners running before I returned home so I've been going back and making improvements now that it is working pretty well.
+
+
+CHANGELOG:
+
+version 1.1.3
+    - Scrypt mining detected automatically and hashrates are corrected accordingly.
+    - Culture problems fixed where using a decimal instead of a comma produced incorrect hashrates.
+    - Miner is restarted when sick or dead GPUs are detected, as restarting the GPU often fails.
+    - Increased API buffer size to prevent chinese characters from appearing when miner returned a lot of data.
+    - Ability to switch miners (CGMiner to BFGMiner or vice versa) handled in case that should ever happen.
+    - Share percentages displayed and include stale and discarded in total to give more accurate percentages.
+    - Check for Update button in the About tab added.
+    - Restart when hashrate below X now fixed to require the hashrate to be below the value for three consecutive CGWatcher refreshes. This number can be changed by changing the HashRateCounter value in CGWatcher.exe.ini. You can also now select whether this value is in Kh/s, Mh/s, or Gh/s.
+    - Miner restarts are improved. If CGWatcher lost full API access or the miner closes unexpectedly on the "restart" command, it is correctly handled by CGWatcher.
+    - Miner is given a startup grace period where it will not be restarted during in order to give it time to start mining. The default is 180 seconds. This can be changed by changing RestartGracePeriod value in CGWatcher.exe.ini.
+    - CGWatcher remembers window position including multi-monitor setups and monitor changes. 
+
+version 1.1.2
+    - Form size increased to make room for more options.
+    - Simple scheduling option added.
+    - Minimize to system tray option added.
+    - Select CGMiner window mode (normal, minimized, hidden) option added.
+    - Editable options now marked in black text, read-only in gray text (in most cases).
+    - Closing CGWatcher while CGMiner is running will prompt the user to confirm closing.
+    - Added support for BFGMiner.
+
+
+
+THINGS TO DO:
+    - Better support for pool problems
+	- Pool information will be pulled from and saved to the miner's config file. (in development)
+	- Additional miner config file support. (in development)
+	- More statistics, information, and reports.
+	- Remote monitoring and control using CGRemote. (in development)
+	- FPGA and ASIC support.
+	- Setting Text Size in Windows to Medium (125%) or Large (150%) causes problems with interface (makes text labels too large).
+	- Feature suggestions can be sent to Milone99k@gmail.com
